@@ -106,12 +106,25 @@ run_logged() {
     fi
 }
 
+# Déterminer le chemin de system-info.sh
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+if [[ -f "/usr/local/bin/system-info.sh" ]]; then
+    SYSTEM_INFO_SCRIPT="/usr/local/bin/system-info.sh"
+elif [[ -f "$SCRIPT_DIR/system-info.sh" ]]; then
+    SYSTEM_INFO_SCRIPT="$SCRIPT_DIR/system-info.sh"
+else
+    log_warning "system-info.sh not found, system information collection will be skipped"
+    SYSTEM_INFO_SCRIPT=""
+fi
+
 # Trap pour capturer les erreurs
 error_handler() {
     local line_number=$1
     log_error "Script failed at line $line_number"
     log_info "Collecting post-failure system information..."
-    /usr/local/bin/system-info.sh "/logs/system-info-post-failure.log" 2>&1 || true
+    if [[ -n "$SYSTEM_INFO_SCRIPT" ]]; then
+        "$SYSTEM_INFO_SCRIPT" "/logs/system-info-post-failure.log" 2>&1 || true
+    fi
     log_error "Installation FAILED. Check logs in /logs/"
     exit 1
 }
@@ -130,6 +143,7 @@ log_info "  - Debug Log: $WO_DEBUG_LOG"
 log_info "  - APT Debug Log: $WO_APT_DEBUG_LOG"
 log_info "  - Dry Run: $DRY_RUN"
 log_info "  - Verbose: $VERBOSE"
+log_info "  - System Info Script: ${SYSTEM_INFO_SCRIPT:-none}"
 
 # =========================================================================
 # ÉTAPE 1: Collecte d'informations système AVANT installation
@@ -137,8 +151,12 @@ log_info "  - Verbose: $VERBOSE"
 
 log_header "ÉTAPE 1: COLLECTE INFORMATIONS SYSTÈME (PRÉ-INSTALLATION)"
 
-run_logged "Collecting system information" \
-    /usr/local/bin/system-info.sh "$SYSTEM_INFO_LOG"
+if [[ -n "$SYSTEM_INFO_SCRIPT" ]]; then
+    run_logged "Collecting system information" \
+        "$SYSTEM_INFO_SCRIPT" "$SYSTEM_INFO_LOG"
+else
+    log_warning "Skipping system information collection (script not found)"
+fi
 
 # =========================================================================
 # ÉTAPE 2: Vérifications préalables
@@ -383,8 +401,12 @@ fi
 
 log_header "ÉTAPE 8: COLLECTE INFORMATIONS SYSTÈME (POST-INSTALLATION)"
 
-run_logged "Collecting post-installation system information" \
-    /usr/local/bin/system-info.sh "$SYSTEM_INFO_POST_LOG"
+if [[ -n "$SYSTEM_INFO_SCRIPT" ]]; then
+    run_logged "Collecting post-installation system information" \
+        "$SYSTEM_INFO_SCRIPT" "$SYSTEM_INFO_POST_LOG"
+else
+    log_warning "Skipping post-installation system information collection (script not found)"
+fi
 
 # =========================================================================
 # ÉTAPE 9: Résumé et recommandations
