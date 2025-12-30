@@ -110,8 +110,10 @@ run_logged() {
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 if [[ -f "/usr/local/bin/system-info.sh" ]]; then
     SYSTEM_INFO_SCRIPT="/usr/local/bin/system-info.sh"
+    chmod +x "$SYSTEM_INFO_SCRIPT" 2>/dev/null || true
 elif [[ -f "$SCRIPT_DIR/system-info.sh" ]]; then
     SYSTEM_INFO_SCRIPT="$SCRIPT_DIR/system-info.sh"
+    chmod +x "$SYSTEM_INFO_SCRIPT" 2>/dev/null || true
 else
     log_warning "system-info.sh not found, system information collection will be skipped"
     SYSTEM_INFO_SCRIPT=""
