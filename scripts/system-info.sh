@@ -121,7 +121,7 @@ run_cmd() {
     log_section "10. VARIABLES D'ENVIRONNEMENT"
     run_cmd "All Environment Variables" "env | sort"
     run_cmd "PATH" "echo \$PATH"
-    run_cmd "DEBIAN_FRONTEND" "echo \$DEBIAN_FRONTEND"
+    run_cmd "DEBIAN_FRONTEND" "echo \${DEBIAN_FRONTEND:-not set}"
     run_cmd "LANG and LOCALE" "locale"
     
     log_section "11. REPOSITORIES TESTING"
