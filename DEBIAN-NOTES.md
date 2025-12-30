@@ -76,6 +76,47 @@ Les logs sont dans `logs/` avec le timestamp de test :
 
 **Guide complet disponible :** [VM-INSTALLATION.md](VM-INSTALLATION.md)
 
+#### ✅ Installation réussie sur VM (30 décembre 2025)
+
+**Configuration testée :**
+- 🖥️ VM Debian 12 (IP: 192.168.0.25)
+- 💾 RAM: 1.9GB / Disque: 20GB
+- 🔧 WordOps v3.22.0
+- ⚡ Stack: Nginx + PHP 8.2 + MariaDB 11.4 + Redis
+- 🌐 Site WordPress créé: `intranet.local`
+
+**Problèmes rencontrés et solutions :**
+
+1. **Clé GPG expirée du dépôt WordOps**
+   ```bash
+   # Erreur: EXPKEYSIG DA4468F6FB898660
+   # Solution: Désactiver temporairement la vérification GPG
+   sudo bash -c 'echo "deb [trusted=yes] http://download.opensuse.org/repositories/home:/virtubox:/WordOps/Debian_12/ /" > /etc/apt/sources.list.d/wordops.list'
+   sudo apt-get update
+   ```
+
+2. **Erreur Git safe.directory**
+   ```bash
+   # Erreur: fatal: propriétaire douteux détecté dans le dépôt à '/etc/redis'
+   # Solution: Autoriser tous les répertoires
+   sudo bash -c 'cat > /root/.gitconfig << EOF
+[user]
+	name = WordOps User
+	email = wordops@localhost
+[safe]
+	directory = *
+EOF'
+   ```
+
+3. **Email non configuré**
+   ```bash
+   # Erreur: EMail not Valid in config
+   # Solution: Configurer l'email dans wo.conf
+   sudo sed -i '/^email =$/c\email = admin@intranet.local' /etc/wo/wo.conf
+   ```
+
+**Installation complète :**
+
 Pour installer WordOps directement sur une VM Debian 12 (sans Docker) :
 
 1. **Créer une VM** avec Debian 12 (VirtualBox, VMware, Hyper-V)
@@ -180,13 +221,34 @@ Ce script vérifie :
 - ✓ RAM
 - ✓ Conflit avec dossier `wo/`
 
+### Tests réalisés
+
+✅ **Stack complète installée** (`wo stack install --nginx --php82 --mysql --redis`)
+✅ **Site WordPress créé** (`wo site create intranet.local --wpfc --php82`)
+✅ **Services fonctionnels** : Nginx, PHP 8.2-FPM, MariaDB 11.4
+✅ **Cache activé** : FastCGI Cache (wpfc) + nginx-helper
+✅ **Installation validée sur VM Debian 12**
+
+### Résultats site créé
+
+```
+URL: http://intranet.local
+Admin: WordOps User
+Password: A4kv9sQCjLedJr8NKzaTuYw3
+DB_NAME: intranet_local_M6x3ugva
+DB_USER: intranetloca8aLi
+DB_PASS: G1TNMfw8CV3ODLvQA0IbsJPt
+```
+
 ### Prochaines étapes
 
-1. Tester l'installation de la stack complète (`wo stack install`)
-2. Créer un site de test sur Debian
+1. ✅ ~~Tester l'installation de la stack complète~~ → **Terminé**
+2. ✅ ~~Créer un site de test sur Debian~~ → **Terminé**
 3. Comparer les performances Nginx entre Ubuntu et Debian
 4. Tester les mises à jour WordOps
-5. Valider l'installation sur VM (voir [VM-INSTALLATION.md](VM-INSTALLATION.md))
+5. ✅ ~~Valider l'installation sur VM~~ → **Terminé**
+6. Tester SSL/HTTPS avec Let's Encrypt
+7. Tester la création de sites avec différentes options (--wpsubdir, --wpsubdomain, etc.)
 
 ---
-*Dernière mise à jour : 30 décembre 2025*
+*Dernière mise à jour : 30 décembre 2025 - Installation VM validée*

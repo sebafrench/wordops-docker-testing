@@ -99,11 +99,26 @@ sudo bash wo
 **Symptôme :**
 ```
 W: GPG error: ... EXPKEYSIG DA4468F6FB898660
+E: Le dépôt http://download.opensuse.org/repositories/home:/virtubox:/WordOps/Debian_12  InRelease n'est pas signé.
 ```
 
 **Cause :** Clé GPG du dépôt WordOps OBS expirée.
 
-**Solution :**
+**Solution validée (30/12/2025) :**
+
+```bash
+# Désactiver temporairement la vérification GPG pour ce dépôt
+sudo bash -c 'echo "deb [trusted=yes] http://download.opensuse.org/repositories/home:/virtubox:/WordOps/Debian_12/ /" > /etc/apt/sources.list.d/wordops.list'
+
+# Mettre à jour apt-cache
+sudo apt-get update
+
+# L'avertissement GPG persiste mais le dépôt est maintenant utilisable
+# Vous pouvez maintenant installer la stack
+sudo wo stack install --nginx --php82 --mysql --redis
+```
+
+**Alternative - Script de correction :**
 
 ```bash
 # 1. Cloner le projet dans /tmp (PAS dans ~)
@@ -122,7 +137,7 @@ wget -qO wo wordops.net/wssl
 sudo bash wo
 ```
 
-**Note :** WordOps installé via PIP n'a pas besoin du dépôt APT.
+**Note :** Cette erreur apparaît lors de `wo stack install`, pas lors de l'installation initiale de WordOps (installé via PIP).
 
 ---
 
@@ -304,6 +319,67 @@ sudo journalctl -u nginx -n 50
 
 ---
 
+### 8. Erreur Git "propriétaire douteux" (safe.directory)
+
+**Symptôme :**
+```
+fatal: propriétaire douteux détecté dans le dépôt à '/etc/redis'
+Pour ajouter une exception pour ce dépôt, lancez:
+    git config --global --add safe.directory /etc/redis
+```
+
+**Cause :** Git 2.35+ refuse d'accéder aux dépôts avec propriétaires différents (sécurité).
+
+**Solution validée (30/12/2025) :**
+
+```bash
+# Autoriser tous les répertoires (solution simple)
+sudo bash -c 'cat > /root/.gitconfig << EOF
+[user]
+	name = WordOps User
+	email = wordops@localhost
+[safe]
+	directory = *
+EOF'
+
+# Vérifier
+sudo cat /root/.gitconfig
+
+# Réessayer la commande WordOps
+sudo wo stack install --redis
+```
+
+**Note :** Le caractère `*` autorise tous les répertoires. C'est acceptable pour un serveur dédié à WordOps.
+
+---
+
+### 9. EMail not Valid in config
+
+**Symptôme :**
+```
+EMail not Valid in config, Please provide valid email id
+Enter your email: There was a serious error encountered...
+```
+
+**Cause :** Le champ `email` est vide dans `/etc/wo/wo.conf`.
+
+**Solution validée (30/12/2025) :**
+
+```bash
+# Configurer l'email dans wo.conf
+sudo sed -i '/^email =$/c\email = admin@example.com' /etc/wo/wo.conf
+
+# Vérifier
+sudo cat /etc/wo/wo.conf | grep email
+
+# Réessayer la création du site
+sudo wo site create test.local --wpfc --php82
+```
+
+**Note :** Remplacez `admin@example.com` par une adresse email valide de votre choix.
+
+---
+
 ## 📞 Support
 
 Si le problème persiste après avoir suivi ce guide :
@@ -335,4 +411,4 @@ Si le problème persiste après avoir suivi ce guide :
 
 ---
 
-*Dernière mise à jour : 30 décembre 2025*
+*Dernière mise à jour : 30 décembre 2025 - Ajout erreurs Git safe.directory et email*
