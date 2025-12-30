@@ -6,11 +6,14 @@
 
 | Document | Description | Temps de Lecture |
 |----------|-------------|------------------|
-| **[WINDOWS-QUICKSTART.md](WINDOWS-QUICKSTART.md)** | Guide rapide pour Windows | 2 min |
-| **[QUICKSTART.md](QUICKSTART.md)** | Guide rapide multi-plateforme | 2 min |
+| **[WINDOWS-QUICKSTART.md](WINDOWS-QUICKSTART.md)** | Guide rapide pour Windows (Docker) | 2 min |
+| **[QUICKSTART.md](QUICKSTART.md)** | Guide rapide multi-plateforme (Docker) | 2 min |
+| **[VM-INSTALLATION.md](VM-INSTALLATION.md)** 🆕 | Installation sur VM Debian 12 (sans Docker) | 10 min |
 | **[FINAL-SUMMARY.md](FINAL-SUMMARY.md)** | Résumé complet du projet | 5 min |
 
-**👉 Commencez ici** : [WINDOWS-QUICKSTART.md](WINDOWS-QUICKSTART.md)
+**👉 Commencez ici** : 
+- Docker: [WINDOWS-QUICKSTART.md](WINDOWS-QUICKSTART.md)
+- VM: [VM-INSTALLATION.md](VM-INSTALLATION.md)
 
 ---
 

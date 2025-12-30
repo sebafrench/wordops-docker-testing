@@ -1,6 +1,17 @@
 # Guide de Démarrage Rapide - WordOps Docker Testing
 
-## 🚀 Démarrage en 3 Commandes
+## � Choix de l'Environnement
+
+### Option 1: Tests avec Docker (Rapide) ⚡
+Idéal pour : Tests, debugging, développement isolé
+
+### Option 2: Installation sur VM (Production-like) 🖥️
+Idéal pour : Environnement réaliste, formation, production
+→ **[Guide complet VM Debian 12](VM-INSTALLATION.md)**
+
+---
+
+## 🚀 Démarrage Docker en 3 Commandes
 
 ### Sur Windows (PowerShell/CMD)
 

@@ -72,12 +72,45 @@ Les logs sont dans `logs/` avec le timestamp de test :
 - `wo-debug.log` : Debug WordOps
 - `wo-apt-debug.log` : Debug APT
 
+### Installation sur VM Debian 12
+
+**Guide complet disponible :** [VM-INSTALLATION.md](VM-INSTALLATION.md)
+
+Pour installer WordOps directement sur une VM Debian 12 (sans Docker) :
+
+1. **Créer une VM** avec Debian 12 (VirtualBox, VMware, Hyper-V)
+   - RAM : 2 GB minimum
+   - Disque : 20 GB
+   - Réseau : Bridge ou NAT avec port forwarding
+
+2. **Installer Debian 12** avec serveur SSH
+
+3. **Installer WordOps** :
+   ```bash
+   wget -qO wo wordops.net/wssl
+   sudo bash wo
+   ```
+
+4. **En cas de problème de clé GPG** (erreur EXPKEYSIG) :
+   ```bash
+   # Utiliser le script de correction
+   git clone https://github.com/sebafrench/wordops-docker-testing.git
+   sudo ./wordops-docker-testing/scripts/fix-wordops-repo.sh
+   ```
+
+5. **Créer un site WordPress** :
+   ```bash
+   sudo wo stack install --nginx --php82 --mysql --redis
+   sudo wo site create test.local --wp --php82 --redis
+   ```
+
 ### Prochaines étapes
 
 1. Tester l'installation de la stack complète (`wo stack install`)
 2. Créer un site de test sur Debian
 3. Comparer les performances Nginx entre Ubuntu et Debian
 4. Tester les mises à jour WordOps
+5. Valider l'installation sur VM (voir [VM-INSTALLATION.md](VM-INSTALLATION.md))
 
 ---
-*Dernière mise à jour : 30 décembre 2024*
+*Dernière mise à jour : 30 décembre 2025*

@@ -45,11 +45,20 @@ Cet environnement permet de :
 
 ## 📦 Prérequis
 
-### Systèmes supportés
+### Environnements supportés
 
+#### Option 1: Docker (Recommandé pour tests)
 - **Windows** : Windows 10/11 avec WSL2 + Docker Desktop
 - **macOS** : Docker Desktop pour Mac
 - **Linux** : Docker Engine + Docker Compose V2
+
+#### Option 2: Machine Virtuelle (Production-like)
+- **VirtualBox** (Windows/Mac/Linux) - [Guide complet VM](VM-INSTALLATION.md)
+- **VMware Workstation/Fusion**
+- **Hyper-V** (Windows Pro/Enterprise)
+- **QEMU/KVM** (Linux)
+
+> 📖 **Installation sur VM** : Voir le guide détaillé [VM-INSTALLATION.md](VM-INSTALLATION.md)
 
 ### Logiciels requis
 
