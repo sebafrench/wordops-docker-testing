@@ -1,0 +1,139 @@
+# -------------------------------------------------------------------------
+# Dockerfile for testing WordOps installation on Ubuntu 22.04 LTS (Jammy)
+# -------------------------------------------------------------------------
+# Purpose: Isolated environment to reproduce and debug WordOps installation
+# Usage: docker compose --profile ubuntu up --build
+# -------------------------------------------------------------------------
+
+FROM ubuntu:22.04
+
+# Empêcher les interactions pendant l'installation
+ENV DEBIAN_FRONTEND=noninteractive \
+    LANG=en_US.UTF-8 \
+    LC_ALL=C.UTF-8 \
+    TZ=Europe/Paris
+
+LABEL maintainer="WordOps Debug Team" \
+      description="Ubuntu 22.04 container for WordOps installation testing" \
+      version="1.0"
+
+# -------------------------------------------------------------------------
+# ÉTAPE 1: Installation des dépendances système minimales
+# -------------------------------------------------------------------------
+# Ces packages sont nécessaires pour:
+# - curl, wget: téléchargement du script d'installation
+# - ca-certificates, gnupg: vérification SSL et signatures GPG
+# - lsb-release: détection de la distribution
+# - apt-transport-https: support des dépôts HTTPS
+# - software-properties-common: gestion des PPA
+# - systemd/systemctl: gestion des services (requis par WordOps)
+# -------------------------------------------------------------------------
+
+RUN apt-get update && apt-get install -y \
+    curl \
+    wget \
+    ca-certificates \
+    gnupg \
+    lsb-release \
+    apt-transport-https \
+    software-properties-common \
+    sudo \
+    systemd \
+    systemd-sysv \
+    procps \
+    iproute2 \
+    iputils-ping \
+    net-tools \
+    dnsutils \
+    vim \
+    nano \
+    less \
+    tree \
+    locales \
+    tzdata \
+    && rm -rf /var/lib/apt/lists/*
+
+# -------------------------------------------------------------------------
+# ÉTAPE 2: Configuration locale et timezone
+# -------------------------------------------------------------------------
+RUN locale-gen en_US.UTF-8 && \
+    update-locale LANG=en_US.UTF-8 && \
+    ln -sf /usr/share/zoneinfo/Europe/Paris /etc/localtime && \
+    echo "Europe/Paris" > /etc/timezone
+
+# -------------------------------------------------------------------------
+# ÉTAPE 3: Création des répertoires pour les logs persistants
+# -------------------------------------------------------------------------
+RUN mkdir -p /logs /var/log/wo /var/lib/wo/tmp /var/lib/wo-backup
+
+# -------------------------------------------------------------------------
+# ÉTAPE 4: Script de debug et de diagnostic système
+# -------------------------------------------------------------------------
+# Ce script capture toutes les informations système essentielles
+# pour diagnostiquer les problèmes d'installation
+# -------------------------------------------------------------------------
+
+COPY scripts/system-info.sh /usr/local/bin/system-info.sh
+RUN chmod +x /usr/local/bin/system-info.sh
+
+# -------------------------------------------------------------------------
+# ÉTAPE 5: Script d'installation WordOps avec mode debug
+# -------------------------------------------------------------------------
+# Le script install-wordops.sh:
+# - Active le mode verbeux bash (set -euxo pipefail)
+# - Capture tous les stdout/stderr dans /logs
+# - Active le debug APT pour tracer les problèmes de dépendances
+# - Vérifie les clés GPG et les sources APT
+# -------------------------------------------------------------------------
+
+COPY scripts/install-wordops.sh /usr/local/bin/install-wordops.sh
+RUN chmod +x /usr/local/bin/install-wordops.sh
+
+# -------------------------------------------------------------------------
+# ÉTAPE 6: Configuration de systemd pour container
+# -------------------------------------------------------------------------
+# WordOps nécessite systemd pour gérer les services (nginx, mysql, etc.)
+# Ces ajustements permettent à systemd de fonctionner dans un container
+# -------------------------------------------------------------------------
+
+# Suppression des units systemd non nécessaires dans un container
+RUN find /etc/systemd/system \
+    /lib/systemd/system \
+    -path '*.wants/*' \
+    \( -name '*getty*' \
+    -o -name '*systemd-tmpfiles*' \
+    -o -name '*systemd-logind*' \
+    -o -name '*systemd-vconsole-setup*' \
+    -o -name '*systemd-readahead*' \
+    -o -name '*udev*' \) \
+    -exec rm -v {} \; 2>/dev/null || true
+
+RUN systemctl set-default multi-user.target && \
+    systemctl mask \
+    getty.target \
+    getty-static.service \
+    display-manager.service \
+    systemd-logind.service \
+    systemd-remount-fs.service \
+    dev-hugepages.mount \
+    sys-fs-fuse-connections.mount 2>/dev/null || true
+
+# -------------------------------------------------------------------------
+# ÉTAPE 7: Point de montage pour les logs
+# -------------------------------------------------------------------------
+VOLUME ["/logs", "/sys/fs/cgroup"]
+
+# -------------------------------------------------------------------------
+# ÉTAPE 8: Configuration du WORKDIR et du CMD
+# -------------------------------------------------------------------------
+WORKDIR /root
+
+# Le container démarre systemd comme init
+# Pour mode debug interactif: docker compose run --rm ubuntu-test bash
+CMD ["/lib/systemd/systemd"]
+
+# -------------------------------------------------------------------------
+# HEALTHCHECK: Vérifie que systemd est actif
+# -------------------------------------------------------------------------
+HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
+    CMD systemctl is-system-running --wait 2>/dev/null | grep -qE "running|degraded" || exit 1

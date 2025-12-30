@@ -1,0 +1,149 @@
+# =========================================================================
+# Docker Compose configuration for WordOps installation testing
+# =========================================================================
+# Purpose: Create isolated environments to test and debug WordOps install
+# 
+# Usage:
+#   Ubuntu 22.04:  docker compose --profile ubuntu up --build
+#   Debian 12:     docker compose --profile debian up --build
+#   Interactive:   docker compose run --rm ubuntu-test bash
+#   View logs:     docker compose logs -f
+#   Cleanup:       docker compose down -v
+#
+# Logs are saved in ./logs/ directory on host
+# =========================================================================
+
+services:
+  # -----------------------------------------------------------------------
+  # Service Ubuntu 22.04 LTS (Jammy)
+  # -----------------------------------------------------------------------
+  ubuntu-test:
+    build:
+      context: .
+      dockerfile: Dockerfile.ubuntu22
+    image: wordops-test:ubuntu22
+    container_name: wordops-ubuntu22-test
+    hostname: wordops-ubuntu22
+    profiles:
+      - ubuntu
+    
+    # Privilèges requis pour systemd et WordOps
+    privileged: true
+    
+    # Volumes pour logs persistants et systemd
+    volumes:
+      - ./logs:/logs:rw
+      - /sys/fs/cgroup:/sys/fs/cgroup:rw
+      - wordops-ubuntu-data:/var/lib/wo
+    
+    # Variables d'environnement pour le debug
+    environment:
+      - DEBIAN_FRONTEND=noninteractive
+      - LANG=en_US.UTF-8
+      - LC_ALL=C.UTF-8
+      - WO_DEBUG=1
+      - WO_INSTALL_LOG=/logs/wo-install-ubuntu.log
+    
+    # Configuration réseau
+    networks:
+      - wordops-net
+    
+    # Expose des ports pour accéder aux services installés (si installation réussit)
+    ports:
+      - "8022:22"      # SSH (si installé)
+      - "8080:80"      # HTTP
+      - "8443:443"     # HTTPS
+      - "22222:22222"  # WordOps admin
+    
+    # Healthcheck pour vérifier que systemd fonctionne
+    healthcheck:
+      test: ["CMD", "systemctl", "is-system-running"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    
+    # Labels pour identification
+    labels:
+      com.wordops.test: "ubuntu22"
+      com.wordops.purpose: "installation-testing"
+
+  # -----------------------------------------------------------------------
+  # Service Debian 12 (Bookworm)
+  # -----------------------------------------------------------------------
+  debian-test:
+    build:
+      context: .
+      dockerfile: Dockerfile.debian12
+    image: wordops-test:debian12
+    container_name: wordops-debian12-test
+    hostname: wordops-debian12
+    profiles:
+      - debian
+    
+    privileged: true
+    
+    volumes:
+      - ./logs:/logs:rw
+      - /sys/fs/cgroup:/sys/fs/cgroup:rw
+      - wordops-debian-data:/var/lib/wo
+    
+    environment:
+      - DEBIAN_FRONTEND=noninteractive
+      - LANG=en_US.UTF-8
+      - LC_ALL=C.UTF-8
+      - WO_DEBUG=1
+      - WO_INSTALL_LOG=/logs/wo-install-debian.log
+    
+    networks:
+      - wordops-net
+    
+    ports:
+      - "9022:22"
+      - "9080:80"
+      - "9443:443"
+      - "22223:22222"
+    
+    healthcheck:
+      test: ["CMD", "systemctl", "is-system-running"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    
+    labels:
+      com.wordops.test: "debian12"
+      com.wordops.purpose: "installation-testing"
+
+# =========================================================================
+# Volumes persistants
+# =========================================================================
+# Ces volumes conservent les données entre les redémarrages de containers
+# =========================================================================
+
+volumes:
+  wordops-ubuntu-data:
+    name: wordops-ubuntu-data
+    driver: local
+    labels:
+      com.wordops.description: "WordOps data for Ubuntu test"
+  
+  wordops-debian-data:
+    name: wordops-debian-data
+    driver: local
+    labels:
+      com.wordops.description: "WordOps data for Debian test"
+
+# =========================================================================
+# Réseau isolé pour les tests
+# =========================================================================
+
+networks:
+  wordops-net:
+    name: wordops-test-network
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.28.0.0/16
+    labels:
+      com.wordops.purpose: "isolated-test-network"

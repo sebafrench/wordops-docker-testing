@@ -1,0 +1,116 @@
+# -------------------------------------------------------------------------
+# Dockerfile for testing WordOps installation on Debian 12 (Bookworm)
+# -------------------------------------------------------------------------
+# Purpose: Isolated environment to reproduce and debug WordOps installation
+# Usage: docker compose --profile debian up --build
+# -------------------------------------------------------------------------
+
+FROM debian:12
+
+# Empêcher les interactions pendant l'installation
+ENV DEBIAN_FRONTEND=noninteractive \
+    LANG=en_US.UTF-8 \
+    LC_ALL=C.UTF-8 \
+    TZ=Europe/Paris
+
+LABEL maintainer="WordOps Debug Team" \
+      description="Debian 12 container for WordOps installation testing" \
+      version="1.0"
+
+# -------------------------------------------------------------------------
+# ÉTAPE 1: Installation des dépendances système minimales
+# -------------------------------------------------------------------------
+
+RUN apt-get update && apt-get install -y \
+    curl \
+    wget \
+    ca-certificates \
+    gnupg \
+    lsb-release \
+    apt-transport-https \
+    software-properties-common \
+    sudo \
+    systemd \
+    systemd-sysv \
+    procps \
+    iproute2 \
+    iputils-ping \
+    net-tools \
+    dnsutils \
+    vim \
+    nano \
+    less \
+    tree \
+    locales \
+    tzdata \
+    && rm -rf /var/lib/apt/lists/*
+
+# -------------------------------------------------------------------------
+# ÉTAPE 2: Configuration locale et timezone
+# -------------------------------------------------------------------------
+RUN echo "en_US.UTF-8 UTF-8" >> /etc/locale.gen && \
+    locale-gen && \
+    ln -sf /usr/share/zoneinfo/Europe/Paris /etc/localtime && \
+    echo "Europe/Paris" > /etc/timezone
+
+# -------------------------------------------------------------------------
+# ÉTAPE 3: Création des répertoires pour les logs persistants
+# -------------------------------------------------------------------------
+RUN mkdir -p /logs /var/log/wo /var/lib/wo/tmp /var/lib/wo-backup
+
+# -------------------------------------------------------------------------
+# ÉTAPE 4: Script de debug et de diagnostic système
+# -------------------------------------------------------------------------
+
+COPY scripts/system-info.sh /usr/local/bin/system-info.sh
+RUN chmod +x /usr/local/bin/system-info.sh
+
+# -------------------------------------------------------------------------
+# ÉTAPE 5: Script d'installation WordOps avec mode debug
+# -------------------------------------------------------------------------
+
+COPY scripts/install-wordops.sh /usr/local/bin/install-wordops.sh
+RUN chmod +x /usr/local/bin/install-wordops.sh
+
+# -------------------------------------------------------------------------
+# ÉTAPE 6: Configuration de systemd pour container
+# -------------------------------------------------------------------------
+
+RUN find /etc/systemd/system \
+    /lib/systemd/system \
+    -path '*.wants/*' \
+    \( -name '*getty*' \
+    -o -name '*systemd-tmpfiles*' \
+    -o -name '*systemd-logind*' \
+    -o -name '*systemd-vconsole-setup*' \
+    -o -name '*systemd-readahead*' \
+    -o -name '*udev*' \) \
+    -exec rm -v {} \; 2>/dev/null || true
+
+RUN systemctl set-default multi-user.target && \
+    systemctl mask \
+    getty.target \
+    getty-static.service \
+    display-manager.service \
+    systemd-logind.service \
+    systemd-remount-fs.service \
+    dev-hugepages.mount \
+    sys-fs-fuse-connections.mount 2>/dev/null || true
+
+# -------------------------------------------------------------------------
+# ÉTAPE 7: Point de montage pour les logs
+# -------------------------------------------------------------------------
+VOLUME ["/logs", "/sys/fs/cgroup"]
+
+# -------------------------------------------------------------------------
+# ÉTAPE 8: Configuration du WORKDIR et du CMD
+# -------------------------------------------------------------------------
+WORKDIR /root
+
+CMD ["/lib/systemd/systemd"]
+
+# -------------------------------------------------------------------------
+# HEALTHCHECK: Vérifie que systemd est actif
+# -------------------------------------------------------------------------
+HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
+    CMD systemctl is-system-running --wait 2>/dev/null | grep -qE "running|degraded" || exit 1
