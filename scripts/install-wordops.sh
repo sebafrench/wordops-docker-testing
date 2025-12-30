@@ -309,6 +309,11 @@ REQUIRED_PACKAGES=(
     "lsb-release"
     "apt-transport-https"
     "software-properties-common"
+    "python3"
+    "python3-pip"
+    "python3-setuptools"
+    "python3-dev"
+    "build-essential"
 )
 
 for pkg in "${REQUIRED_PACKAGES[@]}"; do
