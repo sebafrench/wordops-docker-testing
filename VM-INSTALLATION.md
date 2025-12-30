@@ -123,7 +123,27 @@ apt install -y \
     vim
 ```
 
-### 5. Configurer sudo pour votre utilisateur
+### 5. Configurer Git pour ROOT (OBLIGATOIRE pour WordOps)
+
+```bash
+# WordOps s'exécute avec sudo (en tant que root)
+# Git doit donc être configuré pour root
+sudo git config --global user.name "Votre Nom"
+sudo git config --global user.email "votre@email.com"
+
+# Vérifier la configuration pour root
+sudo git config --global --list
+sudo ls -la /root/.gitconfig
+sudo cat /root/.gitconfig
+```
+
+**⚠️ IMPORTANT :**
+- WordOps s'exécute toujours avec `sudo` (en tant que root)
+- Git doit donc être configuré pour root avec `sudo git config`
+- Le fichier `/root/.gitconfig` doit exister avec permissions `644` et propriétaire `root:root`
+- Cette étape est **OBLIGATOIRE**, sinon WordOps échouera avec: `PermissionError: '/root/.gitconfig'`
+
+### 6. Configurer sudo pour votre utilisateur
 
 ```bash
 # Ajouter l'utilisateur au groupe sudo
@@ -134,7 +154,7 @@ echo "admin ALL=(ALL) NOPASSWD:ALL" > /etc/sudoers.d/admin
 chmod 440 /etc/sudoers.d/admin
 ```
 
-### 6. Configuration réseau (optionnel)
+### 7. Configuration réseau (optionnel)
 
 **Pour une IP statique (au lieu de DHCP) :**
 
@@ -159,18 +179,61 @@ systemctl restart networking
 
 ---
 
-## 🚀 Installation WordOps
+## � Vérification des Prérequis
+
+Avant d'installer WordOps, exécutez le script de vérification automatique :
+
+```bash
+cd /tmp
+git clone https://github.com/sebafrench/wordops-docker-testing.git
+sudo bash /tmp/wordops-docker-testing/scripts/check-vm-requirements.sh
+```
+
+**Ce script vérifie :**
+- ✓ Privilèges root
+- ✓ Distribution Debian 12
+- ✓ **Configuration Git pour root**
+- ✓ **Permissions `/root/.gitconfig`**
+- ✓ Connexion Internet
+- ✓ Résolution DNS
+- ✓ Espace disque (>5GB)
+- ✓ RAM (>1GB)
+- ✓ Conflit avec dossier `wo/`
+
+**Résultat attendu :**
+```
+═══════════════════════════════
+   Résumé de la vérification
+═══════════════════════════════
+Succès:        8
+Avertissements: 0
+Erreurs:       0
+
+✓ Le système est prêt pour l'installation de WordOps
+```
+
+---
+
+## �🚀 Installation WordOps
 
 ### Méthode 1: Installation Standard (Recommandée)
 
 ```bash
-# Se connecter en tant qu'utilisateur normal (pas root)
-exit  # Si vous êtes en root
+# Retourner dans votre répertoire home (IMPORTANT)
+cd ~
+
+# Vérifier qu'il n'y a pas de dossier 'wo'
+ls -la | grep " wo"
 
 # Installation via le script officiel
 wget -qO wo wordops.net/wssl
 sudo bash wo
 ```
+
+**⚠️ IMPORTANT :**
+- Assurez-vous d'être dans votre répertoire home (`cd ~`)
+- N'installez JAMAIS depuis le répertoire du projet Git (conflit avec dossier `wo/`)
+- Si vous voyez l'erreur "wo: est un dossier", vous êtes dans le mauvais répertoire
 
 **Sortie attendue :**
 ```
@@ -181,23 +244,28 @@ WordOps installed successfully
 
 ### Méthode 2: Installation avec Diagnostic (En cas de problème)
 
-Utiliser le script de debug créé dans ce projet :
+Utiliser les scripts de debug de ce projet :
 
 ```bash
-# Télécharger les scripts de debug
+# 1. Cloner le projet dans /tmp
 cd /tmp
 git clone https://github.com/sebafrench/wordops-docker-testing.git
-cd wordops-docker-testing/scripts
 
-# Rendre les scripts exécutables
-chmod +x *.sh
+# 2. IMPORTANT : Sortir du répertoire du projet pour éviter le conflit avec le dossier 'wo/'
+cd ~
 
-# Exécuter le diagnostic pré-installation
-sudo ./debian-debug.sh
+# 3. Installer WordOps normalement
+wget -qO wo wordops.net/wssl
+sudo bash wo
 
-# Installer WordOps avec logging détaillé
-sudo ./install-wordops.sh --verbose
+# 4. Si problème de clé GPG, utiliser le script de correction
+sudo /tmp/wordops-docker-testing/scripts/fix-wordops-repo.sh
+
+# 5. Pour un diagnostic complet (optionnel)
+sudo /tmp/wordops-docker-testing/scripts/debian-debug.sh
 ```
+
+**Note importante :** Le projet contient un dossier `wo/` qui entre en conflit avec le script d'installation. Installez toujours WordOps depuis votre répertoire home (`~`) ou `/tmp`.
 
 ### 3. Vérifier l'installation
 
@@ -361,9 +429,61 @@ ip addr show
 cat /etc/network/interfaces
 ```
 
+### PermissionError: '/root/.gitconfig'
+
+**Erreur complète :**
+```
+PermissionError: [Errno 13] Permission denied: '/root/.gitconfig'
+```
+
+**Cause :** Git n'est pas configuré pour root ou mauvaises permissions.
+
+**Solution complète :**
+```bash
+# 1. Supprimer l'ancien fichier s'il existe
+sudo rm -f /root/.gitconfig
+
+# 2. Reconfigurer Git pour root
+sudo git config --global user.name "Votre Nom"
+sudo git config --global user.email "votre@email.com"
+
+# 3. Vérifier la configuration
+sudo git config --global --list
+sudo ls -la /root/.gitconfig
+sudo cat /root/.gitconfig
+
+# 4. Tester WordOps
+wo --version
+```
+
+**Validation :**
+- Le fichier `/root/.gitconfig` doit exister
+- Permissions : `644` (rw-r--r--)
+- Propriétaire : `root:root`
+
+### Erreur: "wo: est un dossier"
+
+**Cause :** Vous tentez d'installer depuis un répertoire contenant un dossier `wo/`.
+
+**Solution :**
+```bash
+cd ~
+rm -f wo
+wget -qO wo wordops.net/wssl
+sudo bash wo
+```
+
+**Plus d'aide :** Voir [TROUBLESHOOTING-VM.md](TROUBLESHOOTING-VM.md)
+
 ---
 
 ## 📊 Scripts de Diagnostic Disponibles
+
+### `check-vm-requirements.sh` ⭐ NOUVEAU
+Vérification automatique de tous les prérequis
+```bash
+sudo bash /tmp/wordops-docker-testing/scripts/check-vm-requirements.sh
+```
 
 Tous les scripts dans `wordops-docker-testing/scripts/` fonctionnent aussi sur VM :
 
@@ -443,6 +563,7 @@ sudo wo stack install --netdata
 
 ## 🔗 Ressources
 
+- **[TROUBLESHOOTING-VM.md](TROUBLESHOOTING-VM.md)** 🔧 Guide complet de dépannage
 - [Documentation WordOps](https://wordops.net/)
 - [Debian 12 Documentation](https://www.debian.org/releases/bookworm/)
 - [Scripts de debug](https://github.com/sebafrench/wordops-docker-testing)
