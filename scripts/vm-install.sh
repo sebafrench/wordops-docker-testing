@@ -20,6 +20,8 @@ git clone https://github.com/sebafrench/wordops-docker-testing.git
 # Lancer l'installation
 echo "[3/4] Lancement de l'installation WordOps..."
 cd /tmp/wordops-docker-testing
+# Donner les permissions d'exécution aux scripts
+sudo chmod +x scripts/*.sh
 sudo bash scripts/install-wordops.sh
 
 # Vérifier l'installation
